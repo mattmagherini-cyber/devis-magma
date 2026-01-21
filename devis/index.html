@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MÄGMA - Calculator Final V12</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#0B1120', 
+                        surface: '#161e32',
+                        primary: '#8b5cf6', // Violet MÄGMA
+                        success: '#10b981', // Vert Interne
+                        soul: '#f43f5e',    // Rose
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    animation: {
+                        fadeIn: 'fadeIn 0.3s ease-in-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(-10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap');
+        
+        body { background-color: #0B1120; font-family: 'Outfit', sans-serif; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #161e32; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+        .magma-text {
+            color: white;
+            text-shadow: 0 0 15px rgba(139, 92, 246, 0.5), 0 0 30px rgba(139, 92, 246, 0.2);
+        }
+    </style>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+        const { jsPDF } = window.jspdf;
+
+        // --- ICONES ---
+        const Icon = ({ children, size = 20, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
+        );
+
+        const IcoVideo = (p) => <Icon {...p}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></Icon>;
+        const IcoCamera = (p) => <Icon {...p}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></Icon>;
+        const IcoZap = (p) => <Icon {...p} className="text-yellow-400"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></Icon>;
+        const IcoFilm = (p) => <Icon {...p} className="text-emerald-400"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></Icon>;
+        const IcoWand = (p) => <Icon {...p} className="text-purple-400"><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8 19 13"/><path d="M15 9h0"/><path d="M17.8 6.2 19 5"/><path d="M3 21l9-9"/><path d="M12.2 6.2 11 5"/></Icon>;
+        const IcoCrown = (p) => <Icon {...p} className="text-pink-500"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></Icon>;
+        const IcoSmartphone = (p) => <Icon {...p} className="text-pink-400"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></Icon>;
+        const IcoHome = (p) => <Icon {...p} className="text-blue-400"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></Icon>;
+        const IcoBriefcase = (p) => <Icon {...p} className="text-indigo-400"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></Icon>;
+        const IcoAperture = (p) => <Icon {...p} className="text-cyan-400"><circle cx="12" cy="12" r="10"/><line x1="14.31" y1="8" x2="20.05" y2="17.94"/><line x1="9.69" y1="8" x2="21.17" y2="8"/><line x1="7.38" y1="12" x2="13.12" y2="2.06"/><line x1="9.69" y1="16" x2="3.95" y2="6.06"/><line x1="14.31" y1="16" x2="2.83" y2="16"/><line x1="16.62" y1="12" x2="10.88" y2="21.94"/></Icon>;
+        
+        const IcoCheck = (p) => <Icon size={12} className={p.className || "text-emerald-500"}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></Icon>;
+        const IcoChevronDown = () => <Icon><polyline points="6 9 12 15 18 9"/></Icon>;
+        const IcoPlus = () => <Icon size={16}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></Icon>;
+        const IcoMinus = () => <Icon size={16}><line x1="5" y1="12" x2="19" y2="12"/></Icon>;
+        const IcoTrash = () => <Icon size={18}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></Icon>;
+        const IcoCopy = () => <Icon size={18}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></Icon>;
+        const IcoDownload = () => <Icon><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></Icon>;
+        const IcoClock = () => <Icon size={14}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>;
+        const IcoShield = (p) => <Icon size={12} className={p.className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></Icon>;
+        const IcoLock = () => <Icon size={14}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></Icon>;
+        const IcoBriefcaseUser = () => <Icon size={14}><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></Icon>;
+
+        // --- DATA ---
+        const packs = {
+            // --- VIDÉO ---
+            video_story: {
+                id: 'video_story', type: 'video', title: 'Pack Flash', subtitle: 'Story / Reel (15s)',
+                basePrice: 110, hours: 2, score: 12,
+                icon: <IcoSmartphone />,
+                revisions: '1 AR (Liste unique)',
+                features: ['Format Vertical 9:16', 'Montage Cut', 'Musique Tendance'],
+                desc: 'Pour être visible immédiatement sur TikTok/Insta. Idéal pour une promo flash.'
+            },
+            video_vitrine: {
+                id: 'video_vitrine', type: 'video', title: 'Pack Vitrine', subtitle: 'Event / Présentation',
+                basePrice: 220, hours: 4, score: 22,
+                icon: <IcoZap />,
+                revisions: '1 AR (Liste unique)',
+                features: ['Format au choix', 'Rythme Impactant', 'Colorimétrie', 'Sound Design'],
+                desc: 'Le standard efficace pour présenter votre activité ou résumer un événement.'
+            },
+            video_immo: {
+                id: 'video_immo', type: 'video', title: 'Pack Immo', subtitle: 'Visite Fluide',
+                basePrice: 250, hours: 4.5, score: 25,
+                icon: <IcoHome />,
+                revisions: '1 AR (Correction)',
+                features: ['Format 16:9', 'Stabilisation Totale', 'Incrustation Infos'],
+                desc: 'Visite fluide et rassurante pour mettre en valeur les volumes d\'un bien.'
+            },
+            video_reportage: {
+                id: 'video_reportage', type: 'video', title: 'Pack Reportage', subtitle: 'Corporate / Long',
+                basePrice: 440, hours: 8, score: 40, 
+                icon: <IcoBriefcase />,
+                revisions: '2 AR (Structure)',
+                features: ['Storytelling Construit', 'Intégration Interviews', 'B-Rolls', 'Sound Design Pro'],
+                desc: 'Pour expliquer un métier en profondeur ou rassurer des investisseurs.'
+            },
+
+            // --- PHOTO LAB ---
+            photo_dev: {
+                id: 'photo_dev', type: 'photo', title: 'Développement', subtitle: 'Volume (Lightroom)',
+                basePrice: 5, hours: 0.15, score: 1, 
+                icon: <IcoAperture />,
+                revisions: '1 AR (Global)',
+                features: ['Traitement par lot', 'Luminosité/Contraste', 'Recadrage', 'Style MÄGMA'],
+                desc: 'Budget serré ? Je traite tout votre lot de photos pour un rendu propre et homogène.'
+            },
+            photo_extract: {
+                id: 'photo_extract', type: 'photo', title: 'Extraction', subtitle: 'Depuis Rushs Vidéo',
+                basePrice: 10, hours: 0.25, score: 1, 
+                icon: <IcoFilm />,
+                revisions: '1 AR (Color)',
+                features: ['Sélection "Best Moment"', 'Upscale Netteté (IA)', 'Colorimétrie Vidéo', 'Format Web'],
+                desc: 'Je récupère les meilleurs instants de vos vidéos pour en faire des posts HD.'
+            },
+            photo_sublim: {
+                id: 'photo_sublim', type: 'photo', title: 'Sublimation', subtitle: 'Immo / Commercial',
+                basePrice: 29, hours: 0.5, score: 3,
+                icon: <IcoWand />,
+                revisions: '1 AR (Détail)',
+                features: ['Ciel Bleu & Nettoyage', 'Lignes Droites', 'HDR Naturel', 'Tracé Terrain (Drone)'],
+                desc: 'L\'image parfaite pour vendre. Ciel bleu, suppression des défauts, tracé terrain inclus.'
+            },
+            photo_art: {
+                id: 'photo_art', type: 'photo', title: 'Haute-Couture', subtitle: 'Art / Pub / Design',
+                basePrice: 49, hours: 1, score: 5,
+                icon: <IcoCrown />,
+                revisions: 'Illimité',
+                features: ['Retouche Peau Magazine', 'Détourage Complexe', 'Compositing', 'Effets Spéciaux'],
+                desc: 'Pour les demandes complexes : portrait magazine, publicité créative ou miniature YouTube.'
+            }
+        };
+
+        const rushFees = {
+            low: { label: 'Rushs Standard', price: 0, hours: 0 },
+            medium: { label: 'Rushs Volumineux', price: 30, hours: 0.5 },
+            high: { label: 'Rushs Complexes', price: 60, hours: 1 },
+        };
+
+        const deliveryFees = {
+            standard: { label: 'Délai Standard', price: 0 },
+            express: { label: 'Express (-48h)', price: 90 }
+        };
+
+        const extraOptions = {
+            // Options Vidéo
+            formatVariation: { label: 'Déclinaison Format', price: 55, hours: 1, type: 'video' },
+            subtitles: { label: 'Sous-titres animés', price: 40, hours: 0.5, type: 'video' },
+            miniature: { label: 'Miniature YouTube', price: 45, hours: 1, type: 'video' },
+            // Options Photo
+            photoSorting: { label: 'Tri & Sélection (Culling)', price: 2, hours: 0.05, type: 'photo' },
+            clipping: { label: 'Détourage (Fond Transp.)', price: 5, hours: 0.15, type: 'photo' },
+        };
+
+        // --- APP ---
+        const App = () => {
+            const [clientType, setClientType] = useState('external');
+            const [projects, setProjects] = useState([
+                {
+                    id: 1, isOpen: true, type: 'video', 
+                    pack: 'video_vitrine', quantity: 1, rush: 'low', deadline: 'standard',
+                    options: {}
+                }
+            ]);
+
+            const addProject = () => {
+                const newId = projects.length > 0 ? Math.max(...projects.map(p => p.id)) + 1 : 1;
+                setProjects([...projects.map(p=>({...p, isOpen:false})), {
+                    id: newId, isOpen: true, type: 'video', pack: 'video_vitrine', quantity: 1, rush: 'low', deadline: 'standard', options: {}
+                }]);
+            };
+
+            const duplicate = (p) => {
+                const newId = Math.max(...projects.map(p => p.id)) + 1;
+                setProjects([...projects.map(p=>({...p, isOpen:false})), { ...p, id: newId, isOpen: true }]);
+            };
+
+            const remove = (id) => {
+                if (projects.length > 1) setProjects(projects.filter(p => p.id !== id));
+            };
+
+            const update = (id, field, value) => {
+                setProjects(projects.map(p => {
+                    if (p.id !== id) return p;
+                    if (field === 'type') {
+                        const defaultPack = value === 'video' ? 'video_vitrine' : 'photo_dev';
+                        return { ...p, type: value, pack: defaultPack, options: {} };
+                    }
+                    if (field === 'toggleOption') {
+                        const newOptions = { ...p.options, [value]: !p.options[value] };
+                        return { ...p, options: newOptions };
+                    }
+                    return { ...p, [field]: value };
+                }));
+            };
+
+            const toggleOpen = (id) => {
+                setProjects(projects.map(p => p.id === id ? { ...p, isOpen: !p.isOpen } : p));
+            };
+
+            const handleQuantityChange = (id, value) => {
+                if (value === '') { update(id, 'quantity', ''); return; }
+                const num = parseInt(value);
+                if (!isNaN(num) && num >= 0) update(id, 'quantity', num);
+            };
+
+            const incrementQuantity = (id, currentQty) => update(id, 'quantity', (currentQty === '' ? 0 : currentQty) + 1);
+            const decrementQuantity = (id, currentQty) => {
+                const val = (currentQty === '' ? 0 : currentQty);
+                if (val > 1) update(id, 'quantity', val - 1);
+            };
+
+            // Calculations
+            const calc = useMemo(() => {
+                const lines = projects.map(p => {
+                    const packInfo = packs[p.pack];
+                    let uPrice = packInfo.basePrice;
+                    let uHours = packInfo.hours;
+
+                    if (p.type === 'video') {
+                        uPrice += rushFees[p.rush].price;
+                        uHours += rushFees[p.rush].hours;
+                    }
+                    uPrice += deliveryFees[p.deadline].price;
+
+                    Object.entries(extraOptions).forEach(([key, opt]) => {
+                        if (p.options[key] && opt.type === p.type) {
+                            uPrice += opt.price;
+                            uHours += opt.hours;
+                        }
+                    });
+
+                    const total = uPrice * (p.quantity || 0);
+                    const hours = uHours * (p.quantity || 0);
+
+                    const summary = [];
+                    if(p.type === 'video') summary.push(rushFees[p.rush].label);
+                    if(deliveryFees[p.deadline].price > 0) summary.push('Express');
+                    Object.keys(p.options).forEach(k => {
+                        if(p.options[k]) summary.push(extraOptions[k].label);
+                    });
+
+                    return { ...p, packInfo, uPrice, total, hours, summary };
+                });
+
+                let score = 0;
+                let totalQty = 0;
+                
+                lines.forEach(l => {
+                    const qty = l.quantity || 0;
+                    totalQty += qty;
+                    score += (l.packInfo.score * qty);
+                });
+
+                const subTotal = lines.reduce((acc, l) => acc + l.total, 0);
+                const totalHours = lines.reduce((acc, l) => acc + l.hours, 0);
+
+                let discount = 0;
+                let discountLabel = "Aucune";
+                
+                if (clientType === 'internal') {
+                    discount = 0.15; discountLabel = "Interne (-15%)";
+                } else {
+                    if (score >= 200) { discount = 0.20; discountLabel = "Partenaire (-20%)"; }
+                    else if (score >= 100) { discount = 0.15; discountLabel = "Agence (-15%)"; }
+                    else if (score >= 50) { discount = 0.10; discountLabel = "Volume (-10%)"; }
+                }
+
+                const discountAmount = subTotal * discount;
+                const finalTotal = subTotal - discountAmount;
+
+                return { lines, subTotal, discountAmount, discountLabel, finalTotal, totalHours, totalQty, score };
+            }, [projects, clientType]);
+
+            // PDF
+            const generatePDF = () => {
+                const doc = new jsPDF();
+                doc.setFillColor(11, 17, 32); 
+                doc.rect(0, 0, 210, 40, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(24); doc.setFont("helvetica", "bold"); doc.text("MÄGMA", 15, 22);
+                doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(139, 92, 246);
+                doc.text("Matthieu Magherini - Visuals & Strategy", 15, 28);
+
+                doc.setTextColor(200, 200, 200);
+                doc.setFontSize(10);
+                doc.text("Date: " + new Date().toLocaleDateString("fr-FR"), 160, 20);
+                doc.text("Devis #: " + Math.floor(Math.random() * 10000), 160, 27);
+
+                doc.setTextColor(0, 0, 0); doc.setFontSize(12); doc.setFont("helvetica", "bold");
+                doc.text("Détails du projet", 15, 55);
+
+                const rows = calc.lines.map(l => [
+                    l.packInfo.title + (l.type === 'photo' ? ' (Photo)' : ' (Vidéo)'),
+                    l.summary.join(', ') || '-',
+                    l.quantity,
+                    l.uPrice.toFixed(0) + ' €',
+                    l.total.toFixed(0) + ' €'
+                ]);
+
+                doc.autoTable({
+                    head: [['Prestation', 'Options', 'Qté', 'Prix U.', 'Total']],
+                    body: rows,
+                    startY: 60,
+                    headStyles: { fillColor: [139, 92, 246] },
+                    styles: { fontSize: 9 },
+                });
+
+                const finalY = doc.lastAutoTable.finalY + 10;
+                doc.setFontSize(10);
+                doc.text(`Sous-Total HT: ${calc.subTotal.toFixed(0)} €`, 140, finalY);
+                if (calc.discountAmount > 0) {
+                    doc.setTextColor(22, 163, 74);
+                    doc.text(`Remise (${calc.discountLabel}): -${calc.discountAmount.toFixed(0)} €`, 140, finalY + 7);
+                }
+                doc.setDrawColor(200, 200, 200); doc.line(140, finalY + 12, 190, finalY + 12);
+                doc.setTextColor(0, 0, 0); doc.setFontSize(14); doc.setFont("helvetica", "bold");
+                doc.text(`NET: ${calc.finalTotal.toFixed(0)} €`, 140, finalY + 20);
+
+                doc.save('Devis_MÄGMA.pdf');
+            };
+
+            const primaryBg = clientType === 'internal' ? 'bg-emerald-600' : 'bg-primary';
+            const borderColor = clientType === 'internal' ? 'border-emerald-500' : 'border-primary';
+            const ringColor = clientType === 'internal' ? 'ring-emerald-500' : 'ring-primary';
+            const textColor = clientType === 'internal' ? 'text-emerald-400' : 'text-primary';
+
+            return (
+                <div className={`min-h-screen p-4 md:p-8 flex justify-center text-slate-200 transition-colors duration-500 ${clientType === 'internal' ? 'bg-emerald-950/20' : ''}`}>
+                    <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        
+                        <div className="lg:col-span-8 space-y-6">
+                            
+                            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div>
+                                    <h1 className="text-4xl font-black tracking-tighter magma-text flex items-center gap-3">
+                                        MÄGMA 
+                                        {clientType === 'internal' && (
+                                            <span className="text-xs bg-emerald-500 text-black px-2 py-1 rounded-full animate-pulse">STAFF</span>
+                                        )}
+                                    </h1>
+                                    <p className={`${textColor} text-sm font-semibold tracking-wide transition-colors duration-300`}>VISUALS & STRATEGY</p>
+                                </div>
+                                <div className={`bg-surface p-1 rounded-xl flex border transition-colors duration-300 ${clientType === 'internal' ? 'border-emerald-500/50' : 'border-slate-700/50'}`}>
+                                    <button onClick={() => setClientType('external')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${clientType==='external'?'bg-primary text-white shadow-lg':'text-slate-400 hover:text-white'}`}>
+                                        <IcoBriefcaseUser/> Client
+                                    </button>
+                                    <button onClick={() => setClientType('internal')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${clientType==='internal'?'bg-emerald-600 text-white shadow-lg':'text-slate-400 hover:text-white'}`}>
+                                        <IcoLock/> Interne
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                {calc.lines.map((p, idx) => (
+                                    <div key={p.id} className={`bg-surface border rounded-2xl overflow-hidden transition-all duration-300 ${p.isOpen ? `${borderColor} ring-1 ${ringColor}` : 'border-slate-800 hover:border-slate-700'}`}>
+                                        
+                                        <div onClick={() => toggleOpen(p.id)} className="p-4 flex flex-col md:flex-row items-center gap-4 cursor-pointer select-none">
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${p.isOpen ? `${primaryBg} text-white shadow-lg` : 'bg-slate-800 text-slate-500'}`}>
+                                                {p.isOpen ? <IcoChevronDown /> : <span className="font-bold">{idx + 1}</span>}
+                                            </div>
+
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded tracking-wider ${p.type === 'video' ? 'bg-indigo-900/50 text-indigo-300' : 'bg-fuchsia-900/50 text-fuchsia-300'}`}>
+                                                        {p.type === 'video' ? 'VIDÉO' : 'PHOTO'}
+                                                    </span>
+                                                    <h3 className="font-bold text-white text-lg">{p.packInfo.title}</h3>
+                                                </div>
+                                                
+                                                {!p.isOpen && (
+                                                    <div className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-2">
+                                                        <span className="text-white bg-slate-800 px-2 py-0.5 rounded">x{p.quantity}</span>
+                                                        {p.summary.map((s, i) => (
+                                                            <span key={i} className="flex items-center gap-1">
+                                                                <span className="w-1 h-1 rounded-full bg-slate-600"></span> {s}
+                                                            </span>
+                                                        ))}
+                                                        <span className="ml-auto font-mono font-bold text-slate-300">{p.total}€</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex items-center gap-2 pt-3 md:pt-0 border-t md:border-t-0 border-slate-700/50 w-full md:w-auto justify-end" onClick={e => e.stopPropagation()}>
+                                                <div className="flex items-center bg-obsidian rounded-lg border border-slate-700">
+                                                    <button onClick={() => decrementQuantity(p.id, p.quantity)} className="p-2 hover:bg-slate-800 rounded-l-lg text-slate-400"><IcoMinus /></button>
+                                                    <input type="text" inputMode="numeric" value={p.quantity} onChange={(e) => handleQuantityChange(p.id, e.target.value)} className="w-10 bg-transparent text-white font-bold text-center py-2 focus:outline-none text-sm border-x border-slate-700"/>
+                                                    <button onClick={() => incrementQuantity(p.id, p.quantity)} className="p-2 hover:bg-slate-800 rounded-r-lg text-slate-400"><IcoPlus /></button>
+                                                </div>
+                                                <div className="w-px h-6 bg-slate-700 mx-1"></div>
+                                                <button onClick={() => duplicate(p)} className="p-2 text-slate-400 hover:text-white"><IcoCopy /></button>
+                                                <button onClick={() => remove(p.id)} className="p-2 text-slate-400 hover:text-soul"><IcoTrash /></button>
+                                            </div>
+                                        </div>
+
+                                        {p.isOpen && (
+                                            <div className="p-6 border-t border-slate-800 bg-obsidian/50 animate-fadeIn space-y-8">
+                                                
+                                                <div className="flex p-1 bg-obsidian rounded-xl border border-slate-800 w-full md:w-fit">
+                                                    <button onClick={() => update(p.id, 'type', 'video')} className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${p.type === 'video' ? `bg-indigo-600 text-white shadow-lg` : 'text-slate-500 hover:text-slate-300'}`}>
+                                                        <IcoVideo size={16}/> VIDÉO
+                                                    </button>
+                                                    <button onClick={() => update(p.id, 'type', 'photo')} className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all ${p.type === 'photo' ? `bg-fuchsia-600 text-white shadow-lg` : 'text-slate-500 hover:text-slate-300'}`}>
+                                                        <IcoCamera size={16}/> PHOTO LAB
+                                                    </button>
+                                                </div>
+
+                                                <div>
+                                                    <h4 className={`text-xs font-bold uppercase tracking-widest mb-4 ${textColor} transition-colors duration-300`}>Sélectionner un Pack {p.type === 'video' ? 'Vidéo' : 'Photo'}</h4>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {Object.values(packs).filter(pack => pack.type === p.type).map(pack => (
+                                                            <div key={pack.id} onClick={() => update(p.id, 'pack', pack.id)}
+                                                                className={`cursor-pointer p-4 rounded-xl border-2 transition-all relative group ${p.pack === pack.id ? (p.type==='video' ? (clientType==='internal'?'border-emerald-500 bg-emerald-500/10':'border-indigo-500 bg-indigo-500/10') : (clientType==='internal'?'border-emerald-500 bg-emerald-500/10':'border-fuchsia-500 bg-fuchsia-500/10')) : 'border-slate-800 bg-surface hover:border-slate-600'}`}>
+                                                                
+                                                                <div className="flex justify-between items-start mb-3">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className={`p-2 rounded-lg ${p.pack === pack.id ? (p.type==='video' ? (clientType==='internal'?'bg-emerald-500 text-white':'bg-indigo-500 text-white') : (clientType==='internal'?'bg-emerald-500 text-white':'bg-fuchsia-500 text-white')) : 'bg-slate-800'}`}>
+                                                                            {pack.icon}
+                                                                        </div>
+                                                                        <div>
+                                                                            <div className="font-bold text-white">{pack.title}</div>
+                                                                            <div className="text-xs text-slate-500">{pack.subtitle}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <div className="font-bold text-white text-lg">{pack.basePrice}€</div>
+                                                                        <div className="text-[10px] text-slate-500">{pack.hours}h est.</div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {p.pack === pack.id && (
+                                                                    <div className="pt-3 border-t border-slate-700/50 animate-fadeIn">
+                                                                        <p className="text-sm text-slate-300 italic mb-3">"{pack.desc}"</p>
+                                                                        
+                                                                        <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold uppercase mb-2 ${p.type==='video' ? (clientType==='internal'?'bg-emerald-500/20 text-emerald-300':'bg-indigo-500/20 text-indigo-300') : (clientType==='internal'?'bg-emerald-500/20 text-emerald-300':'bg-fuchsia-500/20 text-fuchsia-300')}`}>
+                                                                            <IcoShield className={clientType==='internal'?'text-emerald-400':''} /> {pack.revisions}
+                                                                        </div>
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            {pack.features.map((f,i) => (
+                                                                                <span key={i} className="px-2 py-1 bg-slate-950 border border-slate-800 rounded text-[10px] text-slate-400 flex items-center gap-1">
+                                                                                    <IcoCheck className={clientType==='internal'?'text-emerald-500':''} /> {f}
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid md:grid-cols-2 gap-8">
+                                                    <div className="space-y-4">
+                                                        {p.type === 'video' && (
+                                                            <div>
+                                                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Complexité Rushs</h4>
+                                                                <div className="flex flex-col gap-2">
+                                                                    {Object.entries(rushFees).map(([k, fee]) => (
+                                                                        <button key={k} onClick={() => update(p.id, 'rush', k)} className={`w-full flex justify-between px-3 py-2 rounded-lg text-sm border transition-all ${p.rush === k ? `${primaryBg}/20 ${borderColor} text-white` : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-600'}`}>
+                                                                            <span>{fee.label}</span>
+                                                                            <span className="font-mono text-xs opacity-70">+{fee.price}€</span>
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Délai Livraison</h4>
+                                                            <div className="flex flex-col gap-2">
+                                                                {Object.entries(deliveryFees).map(([k, fee]) => (
+                                                                    <button key={k} onClick={() => update(p.id, 'deadline', k)} className={`w-full flex justify-between px-3 py-2 rounded-lg text-sm border transition-all ${p.deadline === k ? `${primaryBg}/20 ${borderColor} text-white` : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-600'}`}>
+                                                                        <span>{fee.label}</span>
+                                                                        <span className="font-mono text-xs opacity-70">+{fee.price}€</span>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Options {p.type === 'video' ? 'Vidéo' : 'Photo'}</h4>
+                                                        <div className="grid grid-cols-1 gap-2">
+                                                            {Object.entries(extraOptions).filter(([_, opt]) => opt.type === p.type).map(([k, opt]) => (
+                                                                <label key={k} className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${p.options[k] ? `${primaryBg}/10 ${borderColor}` : 'bg-slate-900 border-slate-800 hover:bg-slate-800'}`}>
+                                                                    <div className="flex items-center gap-3">
+                                                                        <input type="checkbox" checked={!!p.options[k]} onChange={() => update(p.id, 'toggleOption', k)} className={`rounded bg-slate-800 border-slate-600 ${clientType === 'internal' ? 'text-emerald-500' : 'text-primary'} focus:ring-0`} />
+                                                                        <span className="text-sm text-white">{opt.label}</span>
+                                                                    </div>
+                                                                    <span className="text-xs font-mono text-slate-400">+{opt.price}€</span>
+                                                                </label>
+                                                            ))}
+                                                            {Object.entries(extraOptions).filter(([_, opt]) => opt.type === p.type).length === 0 && (
+                                                                <div className="text-sm text-slate-500 italic p-2 border border-slate-800 rounded-lg">Aucune option supplémentaire nécessaire. Tout est inclus dans ce pack.</div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button onClick={addProject} className={`w-full py-4 border-2 border-dashed rounded-xl text-slate-500 transition-all flex items-center justify-center gap-2 ${clientType==='internal'?'border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-400':'border-slate-700 hover:text-primary hover:bg-primary/5'}`}>
+                                <IcoPlus /> <span className="font-bold">Ajouter une ligne au devis</span>
+                            </button>
+                        </div>
+
+                        {/* RIGHT */}
+                        <div className="lg:col-span-4 space-y-4">
+                            <div className={`sticky top-6 bg-surface border p-6 rounded-2xl shadow-2xl transition-all duration-500 ${clientType === 'internal' ? 'border-emerald-500/50 shadow-emerald-900/20' : 'border-slate-700/50'}`}>
+                                <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                                    <IcoZap className={textColor}/> Synthèse
+                                </h2>
+
+                                <div className="space-y-4 mb-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {calc.lines.map((l, i) => (
+                                        <div key={l.id} className="pb-4 border-b border-slate-700/50 last:border-0">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <div className="text-sm font-bold text-white">
+                                                    <span className="text-slate-500 mr-2">#{i+1}</span> {l.packInfo.title}
+                                                </div>
+                                                <div className="font-mono font-bold">{l.total}€</div>
+                                            </div>
+                                            <div className="flex justify-between text-xs text-slate-500 pl-4">
+                                                <span>{l.quantity} x {l.uPrice}€</span>
+                                                {l.hours > 0 && <span>{l.hours}h</span>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="bg-obsidian/50 p-4 rounded-xl space-y-2 mb-6">
+                                    <div className="flex justify-between text-sm text-slate-400"><span>Éléments</span><span className="text-white">{calc.totalQty}</span></div>
+                                    <div className="flex justify-between text-sm text-slate-400"><span>Sous-total</span><span>{calc.subTotal}€</span></div>
+                                    {calc.discountAmount > 0 && (
+                                        <div className="flex justify-between text-sm font-bold border-t border-slate-700/50 pt-2 mt-2 text-emerald-400">
+                                            <span>Remise {calc.discountLabel}</span>
+                                            <span>-{calc.discountAmount.toFixed(0)}€</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mb-6">
+                                    <div className="flex justify-between items-end mb-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-xs font-bold uppercase ${textColor} transition-colors duration-300 flex items-center gap-1`}>
+                                                <IcoClock /> Charge
+                                            </span>
+                                            <span className="text-[10px] bg-slate-800 px-1.5 rounded text-slate-400 border border-slate-700">Ref: 55€/h</span>
+                                        </div>
+                                        <span className="font-bold text-white">{calc.totalHours}h</span>
+                                    </div>
+                                    <div className="w-full bg-obsidian h-2 rounded-full overflow-hidden">
+                                        <div className={`h-full transition-all duration-500 ${clientType === 'internal' ? 'bg-emerald-500' : 'bg-gradient-to-r from-primary to-soul'}`} style={{width: `${Math.min((calc.totalHours/40)*100, 100)}%`}}></div>
+                                    </div>
+                                </div>
+
+                                <div className="pt-6 border-t border-slate-700/50 flex justify-between items-end">
+                                    <span className="text-slate-400 font-medium">Net à payer</span>
+                                    <div className="text-right">
+                                        {calc.discountAmount > 0 && (
+                                            <div className="text-sm line-through text-slate-500 mb-1">{calc.subTotal.toFixed(0)}€</div>
+                                        )}
+                                        <span className={`text-4xl font-bold tracking-tighter ${clientType === 'internal' ? 'text-emerald-400' : 'text-white'}`}>
+                                            {calc.finalTotal.toFixed(0)}€
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <button onClick={generatePDF} className={`w-full mt-6 text-white py-4 rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${clientType==='internal' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-gradient-to-r from-primary to-indigo-600 hover:to-indigo-500'}`}>
+                                    <IcoDownload /> Télécharger Devis
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
